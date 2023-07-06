@@ -1,0 +1,60 @@
+---
+title: "Violations On Vessels visiting the US"
+author: "Kit Applegate"
+date: "2023-07-06"
+output:
+  github_document: default
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+The provided code performs several tasks. It begins by loading necessary libraries and setting up the code chunk options. Next, it reads in data from a CSV file (vessel.Defs.csv) using fread. The data is then processed to filter out specific system strings and create a summary of the total system deficiencies. Following that, the code tokenizes the description column, removes stop words, and calculates word frequencies. Finally, it generates a word cloud image based on the word frequencies. The resulting word cloud visualizes the most frequently occurring words in the descriptions.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tidymodels)
+library(data.table)
+library(tidytext)
+library(lubridate)
+library(wordcloud2)
+library(rmarkdown)
+
+strings <- c("Sector", "Marine Safety Unit", "Marine safety Detachment", "Detached Duty", "Detached")
+
+Vessel.Defs <- fread("Data/vessel.Defs.csv", encoding = "UTF-8")
+
+system.string <- c("Navigation", "Stability", "Lifesaving", "Engineering", "Communications", "Fire Fighting", "Construction/Loadline",
+            "Documentation", "Electrical", "Electrical", "Personnel")
+
+Vessel.Defs <- Vessel.Defs %>%
+  filter(!System %in% system.string)
+
+```
+
+```{r echo=TRUE, fig.height=1200, message=FALSE, warning=FALSE, paged.print=FALSE}
+Vessel.Defs %>%
+  group_by(System) %>%
+  summarise(Total.System.Deficiencies = n()) %>%
+  arrange(desc(Total.System.Deficiencies))
+```
+
+```{r echo=TRUE, fig.height=1200, message=FALSE, warning=FALSE}
+tidy_text <- Vessel.Defs %>%
+  unnest_tokens(word, Description)
+
+set.seed(123)
+word_freq <- tidy_text %>%
+  count(word, sort = TRUE) %>%
+  anti_join(stop_words) %>%
+  mutate(word = gsub("\\d+", "", word)) %>%
+  filter(word != "") %>%
+  arrange(desc(n))
+
+```
+
+![](wordcloud.PNG)
